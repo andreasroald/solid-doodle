@@ -6,7 +6,7 @@ import settings
 # Lightning class
 class Lightning(pygame.sprite.Sprite):
     # Initialize the lightning class
-    def __init__(self, x, solid_list):
+    def __init__(self, x, solid_list, generators):
         pygame.sprite.Sprite.__init__(self)
 
         self.image = pygame.Surface((24, settings.display_height))
@@ -23,10 +23,16 @@ class Lightning(pygame.sprite.Sprite):
 
         self.birth = pygame.time.get_ticks()
 
+        self.generators = generators
+
     # Update the lightning class
     def update(self):
         if pygame.time.get_ticks() - self.birth > 350:
             self.kill()
+
+        hits = pygame.sprite.spritecollide(self, self.generators, False)
+        for x in hits:
+            x.powered = True
 
 # Player class
 class Player(pygame.sprite.Sprite):
@@ -222,7 +228,7 @@ class Lightning_Wizard(Player):
 
     # Lightning wizard attack function
     def attack(self, level):
-        l = Lightning(pygame.mouse.get_pos()[0] + level.cam_x_offset, level.walls)
+        l = Lightning(pygame.mouse.get_pos()[0] + level.cam_x_offset, level.walls, level.generators)
         return l
 
     # Update the lightning wizard
@@ -269,3 +275,27 @@ class Door(pygame.sprite.Sprite):
     def update(self):
         if self.powered and self.rect.y < self.orig_y + 64:
             self.rect.y += 2
+
+# Power generator class
+class Generator(pygame.sprite.Sprite):
+    # Initialize the generator class
+    def __init__(self, x, y, id, doors):
+        pygame.sprite.Sprite.__init__(self)
+
+        self.image = pygame.Surface((32, 64))
+        self.image.fill(settings.red)
+        self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = (x, y)
+
+        self.id = id
+
+        self.powered = False
+
+        self.doors = doors
+
+    # Update the generator class
+    def update(self):
+        if self.powered:
+            for doors in self.doors:
+                if doors.id == self.id:
+                    doors.powered = True

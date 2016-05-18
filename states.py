@@ -42,6 +42,9 @@ class Level(States):
                     w = sprites.Door(level_x, level_y, int(cols[1:]))
                     self.walls.add(w)
                     self.doors.add(w)
+                if "g" in str(cols):
+                    w = sprites.Generator(level_x, level_y, int(cols[1:]), self.doors)
+                    self.generators.add(w)
                 if cols == 1:
                     w = sprites.Wall(level_x, level_y, 32, 32)
                     self.walls.add(w)
@@ -58,6 +61,7 @@ class Level(States):
         self.exits = pygame.sprite.Group()
         self.magic = pygame.sprite.Group()
         self.walls = pygame.sprite.Group()
+        self.generators = pygame.sprite.Group()
         self.doors = pygame.sprite.Group()
 
         # Create the level and set current_level to its level list (used for camera movement)
@@ -106,9 +110,7 @@ class Level(States):
     def updates(self):
         self.magic.update()
         self.doors.update()
-
-        for x in self.doors:
-            print(x.id)
+        self.generators.update()
 
         # Horizontal Camera scrolling
         self.cam_x_offset = self.player.rect.x - settings.display_width / 2
@@ -136,6 +138,7 @@ class Level(States):
         self.magic.draw(self.world_surface)
         self.walls.draw(self.world_surface)
         self.doors.draw(self.world_surface)
+        self.generators.draw(self.world_surface)
         self.player.draw(self.world_surface)
 
         # Blit the world surface to the main display
@@ -163,27 +166,63 @@ class Menu(States):
         States.__init__(self)
         self.next = "level_1"
 
+        self.startup()
+
+    # Font rendering function
+    def render_text(self, msg, color, size, dest_surf, pos):
+        font = pygame.font.Font(settings.font_file, size)
+
+        font_surf = font.render(msg, False, color)
+        font_rect = font_surf.get_rect()
+        font_rect.center = pos
+
+        dest_surf.blit(font_surf, font_rect)
+
     # Cleaning up the menu state
     def cleanup(self):
         pass
 
     # Starting the menu state
     def startup(self):
-        pass
+        self.play_color = settings.light_gray
+        self.quit_color = settings.black
+
+        self.selected = "play"
 
     # State event handling
     def get_event(self, event):
-        if event.type == pygame.MOUSEBUTTONUP:
-            self.done = True
-
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_w:
+                self.selected = "play"
+            if event.key == pygame.K_s:
+                self.selected = "quit"
+            if event.key == pygame.K_RETURN:
+                if self.selected == "play":
+                    self.done = True
+                if self.selected == "quit":
+                    pygame.quit()
+                    quit()
 
     # Update the menu state
     def update(self, display):
-        display.blit(resources.menu_background, (0, 0))
+        self.draw(display)
+
+        if self.selected == "play":
+            self.play_color = settings.light_gray
+        else:
+            self.play_color = settings.black
+
+        if self.selected == "quit":
+            self.quit_color = settings.light_gray
+        else:
+            self.quit_color = settings.black
 
     # Menu state drawing
     def draw(self, screen):
-        screen.fill((settings.red))
+        screen.fill((255, 255, 255))
+
+        self.render_text("PLAY", self.play_color, 75, screen, (400, 325))
+        self.render_text("QUIT", self.quit_color, 75, screen, (400, 400))
 
 # Level 1 state
 class Level_1(Level):
@@ -263,14 +302,14 @@ class Level_2(Level):
         # Level list
         self.level_list = [
             [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, "d1", 0, -1, 0, 0, "d1", 0, 0, 0, 0, 0, 0, 0, 0, 1],
             [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
             [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
             [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, "g1", 0, 0, 0, 0, 1],
             [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
             [1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0, 1],
             [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
